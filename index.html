@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-13S6PZX1WJ"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-13S6PZX1WJ');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School E-Voting System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage-compat.js"></script>
+    <!-- End Firebase SDKs -->
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle" class="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
+
+    <!-- Global Image Modal for Fullscreen Images -->
+    <div id="image-modal" style="display:none;position:fixed;z-index:9999;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);justify-content:center;align-items:center;cursor:pointer;">
+        <img id="image-modal-img" src="" alt="Full Image">
+    </div>
+
+    <!-- Login Page -->
+    <div id="login-page" class="page active">
+        <div class="login-container">
+            <div class="login-header">
+                <h1><i class="fas fa-vote-yea"></i> School E-Voting System</h1>
+                <p>Secure, Transparent, Democratic</p>
+                
+                <!-- Dynamic Voting Quotes -->
+                <div class="quotes-container">
+                    <div class="quote-card" id="quote-display">
+                        <i class="fas fa-quote-left quote-icon"></i>
+                        <p class="quote-text">Democracy is not just the right to vote, it is the right to live in dignity.</p>
+                        <span class="quote-author">— Naomi Klein</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="login-form">
+                <div class="role-selector">
+                    <button type="button" class="role-btn active" data-role="voter">
+                        <i class="fas fa-user"></i> Voter
+                    </button>
+                    <button type="button" class="role-btn" data-role="admin">
+                        <i class="fas fa-user-shield"></i> Administrator
+                    </button>
+                </div>
+
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="username">
+                            <span id="username-label">Student Code</span>
+                            <i class="fas fa-user"></i>
+                        </label>
+                        <input type="text" id="username" name="username" required autocomplete="off">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">
+                            Password
+                            <i class="fas fa-lock"></i>
+                        </label>
+                        <input type="password" id="password" name="password" required autocomplete="off">
+                    </div>
+
+                    <button type="submit" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+
+                <div id="login-error" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="admin-page" class="page">
+        <nav class="admin-nav">
+            <div class="nav-brand">
+                <h2><i class="fas fa-shield-alt"></i> Admin Dashboard</h2>
+            </div>
+            <div class="nav-menu">
+                <button class="nav-btn active" data-section="posts" id="nav-btn-posts">
+                    <i class="fas fa-clipboard-list"></i> Manage Posts
+                </button>
+                <button class="nav-btn" data-section="candidates" id="nav-btn-candidates">
+                    <i class="fas fa-users"></i> Manage Candidates
+                </button>
+                <button class="nav-btn" data-section="voters" id="nav-btn-voters">
+                    <i class="fas fa-user-plus"></i> Manage Voters
+                </button>
+                <button class="nav-btn" data-section="results" id="nav-btn-results">
+                    <i class="fas fa-chart-pie"></i> View Results
+                </button>
+                <button class="nav-btn" data-section="reset" id="nav-btn-reset">
+                    <i class="fas fa-redo"></i> Reset Votes
+                </button>
+            </div>
+            <button id="admin-logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </nav>
+
+        <main class="admin-content">
+            <!-- Manage Posts Section -->
+            <section id="posts-section" class="admin-section active">
+                <div class="section-header">
+                    <h3>Manage Voting Posts</h3>
+                    <button id="add-post-btn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add New Post
+                    </button>
+                </div>
+                
+                <div id="posts-list" class="posts-grid"></div>
+
+                <!-- Add Post Modal -->
+                <div id="add-post-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h4>Add New Voting Post</h4>
+                        <form id="add-post-form">
+                            <input type="text" id="post-title" placeholder="Post Title (e.g., Student President)" required autocomplete="off">
+                            <textarea id="post-description" placeholder="Post Description" required></textarea>
+                            <button type="submit">Create Post</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Candidates Section -->
+            <section id="candidates-section" class="admin-section">
+                <div class="section-header">
+                    <h3>Manage Candidates</h3>
+                    <button id="add-candidate-btn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Add Candidate
+                    </button>
+                </div>
+                
+                <div id="candidates-list" class="candidates-grid"></div>
+
+                <!-- Add Candidate Modal -->
+                <div id="add-candidate-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h4>Add New Candidate</h4>
+                        <form id="add-candidate-form">
+                            <select id="candidate-post" required>
+                                <option value="">Select Post</option>
+                            </select>
+                            <input type="text" id="candidate-name" placeholder="Candidate Name" required autocomplete="off">
+                            <input type="text" id="candidate-slogan" placeholder="Campaign Slogan" required autocomplete="off">
+                            
+                            <!-- Image Upload Section -->
+                            <div class="file-upload-section">
+                                <label>Candidate Image</label>
+                                <div class="upload-options">
+                                    <input type="file" id="candidate-image-file" accept="image/*" style="display: none;">
+                                    <button type="button" id="upload-image-btn" class="btn btn-secondary">
+                                        <i class="fas fa-upload"></i> Upload Image
+                                    </button>
+                                    <span>or</span>
+                                    <input type="url" id="candidate-image-url" placeholder="Image URL">
+                                </div>
+                                <div id="image-preview" class="file-preview"></div>
+                            </div>
+                            
+                            <!-- Video Upload Section -->
+                            <div class="file-upload-section">
+                                <label>Campaign Video</label>
+                                <div class="upload-options">
+                                    <input type="file" id="candidate-video-file" accept="video/*" style="display: none;">
+                                    <button type="button" id="upload-video-btn" class="btn btn-secondary">
+                                        <i class="fas fa-video"></i> Upload Video
+                                    </button>
+                                    <span>or</span>
+                                    <input type="url" id="candidate-video-url" placeholder="Video URL">
+                                </div>
+                                <div id="video-preview" class="file-preview"></div>
+                            </div>
+                            
+                            <textarea id="candidate-bio" placeholder="Candidate Biography"></textarea>
+                            <button type="submit">Add Candidate</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Voters Section -->
+            <section id="voters-section" class="admin-section">
+                <div class="section-header">
+                    <h3>Manage Voters</h3>
+                    <button id="add-voter-btn" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Add Voter
+                    </button>
+                </div>
+                
+                <div id="voters-list" class="voters-grid"></div>
+
+                <!-- Add Voter Modal -->
+                <div id="add-voter-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <h4>Add New Voter</h4>
+                        <form id="add-voter-form">
+                            <input type="text" id="voter-name" placeholder="Student Name" required autocomplete="off">
+                            <input type="text" id="voter-code" placeholder="Student Code" required autocomplete="off">
+                            <input type="password" id="voter-password" placeholder="Student Password" required autocomplete="off">
+                            <button type="submit">Add Voter</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="admin-section">
+                <div class="section-header">
+                    <h3>Voting Results</h3>
+                    <button id="refresh-results" class="btn btn-secondary">
+                        <i class="fas fa-sync"></i> Refresh
+                    </button>
+                </div>
+                
+                <div id="results-container" class="results-grid"></div>
+            </section>
+
+            <!-- Reset Votes Section -->
+            <section id="reset-section" class="admin-section">
+                <div class="section-header">
+                    <h3>Reset All Votes</h3>
+                </div>
+                
+                <div class="reset-container">
+                    <div class="warning-box">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h4>Warning: This action cannot be undone!</h4>
+                        <p>Resetting votes will permanently delete all voting data and allow students to vote again.</p>
+                    </div>
+                    
+                    <form id="reset-votes-form">
+                        <input type="password" id="reset-password" placeholder="Enter Admin Password" required autocomplete="off">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-redo"></i> Reset All Votes
+                        </button>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Voter Page -->
+    <div id="voter-page" class="page">
+        <nav class="voter-nav">
+            <div class="nav-brand">
+                <h2><i class="fas fa-vote-yea"></i> Voting Portal</h2>
+                <span id="voter-name-display"></span>
+            </div>
+            <button id="voter-logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </nav>
+
+        <main class="voter-content">
+            <div class="voting-progress">
+                <div class="progress-header">
+                    <h3>Voting Progress</h3>
+                    <span id="progress-text">0 of 0 positions voted</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+            </div>
+
+            <div id="voting-sections" class="voting-sections"></div>
+
+            <div class="voting-actions">
+                <button id="submit-votes" class="btn btn-success" disabled>
+                    <i class="fas fa-paper-plane"></i> Submit Votes
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <h4>Confirm Submission</h4>
+            <p>Are you sure you want to submit your votes? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button id="confirm-submit" class="btn btn-success">Yes, Submit</button>
+                <button id="cancel-submit" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Config and Initialization -->
+    <script>
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      const firebaseConfig = {
+        apiKey: "AIzaSyAQcPbsYhRJJLNexm-Yvm3OKvNfc9BoxBY",
+        authDomain: "evs---db.firebaseapp.com",
+        projectId: "evs---db",
+        storageBucket: "evs---db.firebasestorage.app",
+        messagingSenderId: "454179014743",
+        appId: "1:454179014743:web:7cd15213c7a56b7b6c3b12",
+        measurementId: "G-13S6PZX1WJ"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+      const auth = firebase.auth();
+      const storage = firebase.storage();
+    </script>
+    <!-- End Firebase Config and Initialization -->
+    <!-- Scripts -->
+    <script src="data.js"></script>
+    <script src="theme.js"></script>
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+    <script src="voter.js"></script>
+    <script src="quotes.js"></script>
+    <script src="script.js"></script>
+</body>
+<script src="image-modal.js"></script>
+</body>
+</body>
+</html>
