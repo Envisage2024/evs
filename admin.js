@@ -335,13 +335,16 @@ class AdminManager {
             title: formData.get('title') || document.getElementById('post-title').value,
             description: formData.get('description') || document.getElementById('post-description').value
         };
+        const addPostBtn = document.getElementById('add-post-btn');
         try {
             await addPost(postData.title, postData.description);
             this.hideModal('add-post-modal');
             e.target.reset();
+            if (addPostBtn) addPostBtn.disabled = false;
             await this.loadPosts();
             this.showSuccessMessage('Post created successfully!');
         } catch (error) {
+            if (addPostBtn) addPostBtn.disabled = false;
             this.showErrorMessage('Failed to create post: ' + error.message);
         }
     }
