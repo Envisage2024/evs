@@ -330,7 +330,10 @@ class AdminManager {
 
     async handleAddPost(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        const formData = new FormData(form);
         const postData = {
             title: formData.get('title') || document.getElementById('post-title').value,
             description: formData.get('description') || document.getElementById('post-description').value
@@ -339,12 +342,14 @@ class AdminManager {
         try {
             await addPost(postData.title, postData.description);
             this.hideModal('add-post-modal');
-            e.target.reset();
+            form.reset();
             if (addPostBtn) addPostBtn.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
             await this.loadPosts();
             this.showSuccessMessage('Post created successfully!');
         } catch (error) {
             if (addPostBtn) addPostBtn.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
             this.showErrorMessage('Failed to create post: ' + error.message);
         }
     }
@@ -393,7 +398,6 @@ class AdminManager {
             <p class="candidate-slogan">"${candidate.slogan}"</p>
             ${candidate.image ? `<img src="${candidate.image}" alt="${candidate.name}" class="candidate-image" onerror="this.style.display='none'">` : ''}
             ${candidate.bio ? `<p class="candidate-bio">${candidate.bio}</p>` : ''}
-            ${candidate.video ? `<video src="${candidate.video}" class="candidate-video" controls></video>` : ''}
             <div class="card-actions">
                 <button onclick="adminManager.deleteCandidate('${candidate.id}')" class="btn btn-danger btn-sm">
                     <i class="fas fa-trash"></i> Delete
@@ -419,6 +423,10 @@ class AdminManager {
 
     async handleAddCandidate(e) {
         e.preventDefault();
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        const addCandidateBtn = document.getElementById('add-candidate-btn');
         // Always use imgbb upload if available, else use URL field
         let imageUrl = '';
         if (this.candidateImageData) {
@@ -431,28 +439,34 @@ class AdminManager {
             name: document.getElementById('candidate-name').value,
             slogan: document.getElementById('candidate-slogan').value,
             image: imageUrl,
-            video: this.candidateVideoData || document.getElementById('candidate-video-url').value,
             bio: document.getElementById('candidate-bio').value
         };
         if (!candidateData.postId) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (addCandidateBtn) addCandidateBtn.disabled = false;
             this.showErrorMessage('Please select a post for the candidate');
             return;
         }
         const imageFileInput = document.getElementById('candidate-image-file');
         if (imageFileInput && imageFileInput.files.length > 0 && !this.candidateImageData) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (addCandidateBtn) addCandidateBtn.disabled = false;
             this.showErrorMessage('Please wait for the image to finish uploading.');
             return;
         }
         try {
             await addCandidate(candidateData);
             this.hideModal('add-candidate-modal');
-            e.target.reset();
+            form.reset();
             this.resetFileUploadPreviews();
             this.candidateImageData = null;
-            this.candidateVideoData = null;
+            if (submitBtn) submitBtn.disabled = false;
+            if (addCandidateBtn) addCandidateBtn.disabled = false;
             await this.loadCandidates();
             this.showSuccessMessage('Candidate added successfully!');
         } catch (error) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (addCandidateBtn) addCandidateBtn.disabled = false;
             this.showErrorMessage('Failed to add candidate: ' + error.message);
         }
     }
@@ -501,7 +515,10 @@ class AdminManager {
 
     async handleAddVoter(e) {
         e.preventDefault();
-        const formData = new FormData(e.target);
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+        const formData = new FormData(form);
         const voterData = {
             name: formData.get('name') || document.getElementById('voter-name').value,
             studentCode: formData.get('studentCode') || document.getElementById('voter-code').value,
@@ -510,16 +527,24 @@ class AdminManager {
         // Check for duplicate student code
         const existingVoters = await fetchVoters();
         if (existingVoters.find(v => v.studentCode === voterData.studentCode)) {
+            if (submitBtn) submitBtn.disabled = false;
             this.showErrorMessage('Student code already exists');
             return;
         }
         try {
             await addVoter(voterData);
             this.hideModal('add-voter-modal');
-            e.target.reset();
+            form.reset();
+            if (submitBtn) submitBtn.disabled = false;
+            // Re-enable the add voter button after successful add
+            const addVoterBtn = document.getElementById('add-voter-btn');
+            if (addVoterBtn) addVoterBtn.disabled = false;
             await this.loadVoters();
             this.showSuccessMessage('Voter added successfully!');
         } catch (error) {
+            if (submitBtn) submitBtn.disabled = false;
+            const addVoterBtn = document.getElementById('add-voter-btn');
+            if (addVoterBtn) addVoterBtn.disabled = false;
             this.showErrorMessage('Failed to add voter: ' + error.message);
         }
     }
@@ -1102,10 +1127,14 @@ class AdminManager {
 
     // Reset Votes
     handleResetVotes(e) {
+        const form = e.target;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
         const password = document.getElementById('reset-password').value;
         // Use Firebase Auth to re-authenticate admin
         const user = auth.currentUser;
         if (!user) {
+            if (submitBtn) submitBtn.disabled = false;
             this.showErrorMessage('You must be logged in as admin to reset votes.');
             return;
         }
@@ -1121,13 +1150,17 @@ class AdminManager {
                     const votersSnapshot = await db.collection('voters').get();
                     votersSnapshot.forEach(doc => batch.update(doc.ref, { voted: false }));
                     await batch.commit();
-                    e.target.reset();
+                    form.reset();
+                    if (submitBtn) submitBtn.disabled = false;
                     this.loadResults();
                     this.loadVoters();
                     this.showSuccessMessage('All votes have been reset successfully!');
+                } else {
+                    if (submitBtn) submitBtn.disabled = false;
                 }
             })
             .catch(() => {
+                if (submitBtn) submitBtn.disabled = false;
                 this.showErrorMessage('Invalid admin password');
             });
     }
@@ -1183,7 +1216,6 @@ class AdminManager {
     // File Upload Management
     setupFileUploads() {
         this.candidateImageData = null;
-        this.candidateVideoData = null;
 
         // Image upload button
         const uploadImageBtn = document.getElementById('upload-image-btn');
@@ -1203,27 +1235,6 @@ class AdminManager {
             if (imageUrlInput.value) {
                 this.candidateImageData = null;
                 this.showImagePreview(imageUrlInput.value, imagePreview, false);
-            }
-        });
-
-        // Video upload button
-        const uploadVideoBtn = document.getElementById('upload-video-btn');
-        const videoFileInput = document.getElementById('candidate-video-file');
-        const videoPreview = document.getElementById('video-preview');
-        const videoUrlInput = document.getElementById('candidate-video-url');
-
-        uploadVideoBtn?.addEventListener('click', () => {
-            videoFileInput.click();
-        });
-
-        videoFileInput?.addEventListener('change', (e) => {
-            this.handleVideoUpload(e.target.files[0], videoPreview);
-        });
-
-        videoUrlInput?.addEventListener('input', () => {
-            if (videoUrlInput.value) {
-                this.candidateVideoData = null;
-                this.showVideoPreview(videoUrlInput.value, videoPreview, false);
             }
         });
     }
@@ -1279,31 +1290,6 @@ class AdminManager {
         reader.readAsDataURL(file);
     }
 
-    handleVideoUpload(file, previewContainer) {
-        if (!file) return;
-
-        // Validate file type
-        if (!file.type.startsWith('video/')) {
-            this.showErrorMessage('Please select a valid video file');
-            return;
-        }
-
-        // Validate file size (max 50MB)
-        if (file.size > 50 * 1024 * 1024) {
-            this.showErrorMessage('Video file size must be less than 50MB');
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.candidateVideoData = e.target.result;
-            this.showVideoPreview(e.target.result, previewContainer, true, file);
-            // Clear URL input
-            document.getElementById('candidate-video-url').value = '';
-        };
-        reader.readAsDataURL(file);
-    }
-
     showImagePreview(src, container, isFile = false, file = null) {
         container.innerHTML = '';
         container.classList.add('show');
@@ -1330,33 +1316,6 @@ class AdminManager {
         }
     }
 
-    showVideoPreview(src, container, isFile = false, file = null) {
-        container.innerHTML = '';
-        container.classList.add('show');
-
-        const video = document.createElement('video');
-        video.src = src;
-        video.controls = true;
-        video.preload = 'metadata';
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-file';
-        removeBtn.innerHTML = '×';
-        removeBtn.addEventListener('click', () => {
-            this.removeVideoPreview(container);
-        });
-
-        container.appendChild(video);
-        container.appendChild(removeBtn);
-
-        if (file) {
-            const sizeInfo = document.createElement('div');
-            sizeInfo.className = 'file-size-info';
-            sizeInfo.textContent = `${file.name} (${this.formatFileSize(file.size)})`;
-            container.appendChild(sizeInfo);
-        }
-    }
-
     removeImagePreview(container) {
         container.classList.remove('show');
         container.innerHTML = '';
@@ -1365,20 +1324,9 @@ class AdminManager {
         document.getElementById('candidate-image-url').value = '';
     }
 
-    removeVideoPreview(container) {
-        container.classList.remove('show');
-        container.innerHTML = '';
-        this.candidateVideoData = null;
-        document.getElementById('candidate-video-file').value = '';
-        document.getElementById('candidate-video-url').value = '';
-    }
-
     resetFileUploadPreviews() {
         const imagePreview = document.getElementById('image-preview');
-        const videoPreview = document.getElementById('video-preview');
-        
         if (imagePreview) this.removeImagePreview(imagePreview);
-        if (videoPreview) this.removeVideoPreview(videoPreview);
     }
 
     formatFileSize(bytes) {
